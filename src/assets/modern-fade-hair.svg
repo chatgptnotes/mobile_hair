@@ -1,0 +1,83 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#f8f9fa"/>
+  
+  <!-- Modern fade hair silhouette -->
+  <path d="M 50 75 
+           C 35 55, 30 40, 35 25
+           C 40 15, 55 10, 80 12
+           C 100 8, 130 8, 150 12
+           C 175 10, 190 15, 195 25
+           C 200 40, 195 55, 180 75
+           C 175 90, 170 100, 165 110
+           C 160 120, 155 130, 150 140
+           L 50 140
+           C 45 130, 40 120, 35 110
+           C 30 100, 25 90, 50 75 Z" 
+        fill="#2a2a2a" 
+        stroke="#000" 
+        stroke-width="1"/>
+  
+  <!-- Top section - longer hair -->
+  <path d="M 75 30 
+           C 85 20, 105 15, 135 20
+           C 155 25, 165 35, 160 45
+           C 155 40, 135 35, 115 37
+           C 95 35, 80 37, 75 30 Z" 
+        fill="#1a1a1a" 
+        stroke="#000" 
+        stroke-width="0.5"/>
+  
+  <!-- Fade sections - gradually lighter -->
+  <path d="M 50 70 
+           C 55 80, 60 90, 65 100
+           L 70 100
+           C 68 90, 66 80, 64 70
+           C 62 65, 60 60, 58 55" 
+        fill="#3a3a3a" 
+        stroke="#222" 
+        stroke-width="0.5"/>
+        
+  <path d="M 180 70 
+           C 175 80, 170 90, 165 100
+           L 160 100
+           C 162 90, 164 80, 166 70
+           C 168 65, 170 60, 172 55" 
+        fill="#3a3a3a" 
+        stroke="#222" 
+        stroke-width="0.5"/>
+  
+  <!-- Lower fade sections -->
+  <path d="M 55 90 
+           C 60 100, 65 110, 70 120
+           L 75 120
+           C 73 110, 71 100, 69 90
+           C 67 85, 65 80, 63 75" 
+        fill="#4a4a4a" 
+        stroke="#333" 
+        stroke-width="0.5"/>
+        
+  <path d="M 175 90 
+           C 170 100, 165 110, 160 120
+           L 155 120
+           C 157 110, 159 100, 161 90
+           C 163 85, 165 80, 167 75" 
+        fill="#4a4a4a" 
+        stroke="#333" 
+        stroke-width="0.5"/>
+  
+  <!-- Hair texture lines on top -->
+  <path d="M 80 35 C 85 40, 90 45, 95 50" stroke="#444" stroke-width="1.2" fill="none"/>
+  <path d="M 100 32 C 105 37, 110 42, 115 47" stroke="#444" stroke-width="1.2" fill="none"/>
+  <path d="M 120 32 C 125 37, 130 42, 135 47" stroke="#444" stroke-width="1.2" fill="none"/>
+  <path d="M 140 35 C 145 40, 150 45, 155 50" stroke="#444" stroke-width="1.2" fill="none"/>
+  
+  <!-- Fade transition lines -->
+  <path d="M 65 65 C 70 70, 75 75, 80 80" stroke="#555" stroke-width="0.8" fill="none"/>
+  <path d="M 165 65 C 160 70, 155 75, 150 80" stroke="#555" stroke-width="0.8" fill="none"/>
+  
+  <!-- Additional texture details -->
+  <path d="M 85 40 C 90 45, 95 50, 100 55" stroke="#333" stroke-width="0.6" fill="none"/>
+  <path d="M 115 38 C 120 43, 125 48, 130 53" stroke="#333" stroke-width="0.6" fill="none"/>
+  <path d="M 135 40 C 140 45, 145 50, 150 55" stroke="#333" stroke-width="0.6" fill="none"/>
+</svg>

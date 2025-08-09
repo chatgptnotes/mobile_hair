@@ -1,0 +1,75 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#f8f9fa"/>
+  
+  <!-- Side part hair silhouette -->
+  <path d="M 45 70 
+           C 30 50, 25 35, 30 20
+           C 35 12, 50 8, 75 10
+           C 95 5, 125 5, 145 10
+           C 170 8, 185 12, 190 20
+           C 195 35, 190 50, 175 70
+           C 170 85, 165 95, 160 105
+           C 155 115, 150 125, 145 135
+           L 55 135
+           C 50 125, 45 115, 40 105
+           C 35 95, 30 85, 45 70 Z" 
+        fill="#2a2a2a" 
+        stroke="#000" 
+        stroke-width="1"/>
+  
+  <!-- Side part line -->
+  <path d="M 85 25 L 90 45" stroke="#f8f9fa" stroke-width="2" fill="none"/>
+  
+  <!-- Left side of part - swept over -->
+  <path d="M 50 35 
+           C 60 30, 75 28, 85 30
+           C 80 40, 75 50, 70 60
+           C 65 70, 60 80, 55 90
+           L 50 90
+           C 48 80, 46 70, 44 60
+           C 42 50, 45 40, 50 35 Z" 
+        fill="#1a1a1a" 
+        stroke="#000" 
+        stroke-width="0.5"/>
+  
+  <!-- Right side of part - combed back -->
+  <path d="M 90 30 
+           C 110 25, 135 28, 155 35
+           C 160 40, 162 50, 164 60
+           C 166 70, 168 80, 170 90
+           L 165 90
+           C 160 80, 155 70, 150 60
+           C 145 50, 140 40, 135 35
+           C 120 32, 105 30, 90 30 Z" 
+        fill="#1a1a1a" 
+        stroke="#000" 
+        stroke-width="0.5"/>
+  
+  <!-- Hair flow lines - left side -->
+  <path d="M 55 40 C 60 45, 65 50, 70 55" stroke="#444" stroke-width="1.0" fill="none"/>
+  <path d="M 60 45 C 65 50, 70 55, 75 60" stroke="#444" stroke-width="1.0" fill="none"/>
+  <path d="M 65 50 C 70 55, 75 60, 80 65" stroke="#444" stroke-width="1.0" fill="none"/>
+  
+  <!-- Hair flow lines - right side -->
+  <path d="M 95 35 C 105 40, 115 45, 125 50" stroke="#444" stroke-width="1.0" fill="none"/>
+  <path d="M 105 38 C 115 43, 125 48, 135 53" stroke="#444" stroke-width="1.0" fill="none"/>
+  <path d="M 115 40 C 125 45, 135 50, 145 55" stroke="#444" stroke-width="1.0" fill="none"/>
+  <path d="M 125 42 C 135 47, 145 52, 155 57" stroke="#444" stroke-width="1.0" fill="none"/>
+  
+  <!-- Additional texture details -->
+  <path d="M 58 42 C 63 47, 68 52, 73 57" stroke="#333" stroke-width="0.8" fill="none"/>
+  <path d="M 62 47 C 67 52, 72 57, 77 62" stroke="#333" stroke-width="0.8" fill="none"/>
+  
+  <path d="M 100 37 C 110 42, 120 47, 130 52" stroke="#333" stroke-width="0.8" fill="none"/>
+  <path d="M 110 40 C 120 45, 130 50, 140 55" stroke="#333" stroke-width="0.8" fill="none"/>
+  <path d="M 120 43 C 130 48, 140 53, 150 58" stroke="#333" stroke-width="0.8" fill="none"/>
+  
+  <!-- Fine hair strands -->
+  <path d="M 70 38 C 75 43, 80 48, 85 53" stroke="#555" stroke-width="0.6" fill="none"/>
+  <path d="M 108 39 C 118 44, 128 49, 138 54" stroke="#555" stroke-width="0.6" fill="none"/>
+  <path d="M 118 41 C 128 46, 138 51, 148 56" stroke="#555" stroke-width="0.6" fill="none"/>
+  
+  <!-- Part definition -->
+  <path d="M 85 28 C 87 35, 89 42, 91 49" stroke="#666" stroke-width="0.4" fill="none"/>
+</svg>

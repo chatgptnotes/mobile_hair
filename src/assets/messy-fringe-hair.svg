@@ -1,0 +1,82 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#f8f9fa"/>
+  
+  <!-- Messy fringe hair silhouette -->
+  <path d="M 40 50 
+           C 25 35, 20 25, 25 15
+           C 30 10, 45 8, 65 10
+           C 85 6, 115 6, 135 10
+           C 155 8, 170 10, 175 15
+           C 180 25, 175 35, 160 50
+           C 155 65, 150 75, 145 85
+           C 140 95, 135 105, 130 115
+           L 70 115
+           C 65 105, 60 95, 55 85
+           C 50 75, 45 65, 40 50 Z" 
+        fill="#2a2a2a" 
+        stroke="#000" 
+        stroke-width="1"/>
+  
+  <!-- Messy fringe bangs -->
+  <path d="M 50 50 
+           C 55 60, 60 70, 65 75
+           L 70 75
+           C 68 65, 66 55, 64 50
+           C 62 45, 60 40, 58 35" 
+        fill="#1a1a1a" 
+        stroke="#000" 
+        stroke-width="0.5"/>
+        
+  <path d="M 75 45 
+           C 78 55, 80 65, 82 75
+           L 85 75
+           C 83 65, 81 55, 79 45
+           C 77 40, 75 35, 73 30" 
+        fill="#1a1a1a" 
+        stroke="#000" 
+        stroke-width="0.5"/>
+        
+  <path d="M 95 40 
+           C 98 50, 100 60, 102 70
+           L 105 70
+           C 103 60, 101 50, 99 40
+           C 97 35, 95 30, 93 25" 
+        fill="#1a1a1a" 
+        stroke="#000" 
+        stroke-width="0.5"/>
+        
+  <path d="M 115 45 
+           C 118 55, 120 65, 122 75
+           L 125 75
+           C 123 65, 121 55, 119 45
+           C 117 40, 115 35, 113 30" 
+        fill="#1a1a1a" 
+        stroke="#000" 
+        stroke-width="0.5"/>
+        
+  <path d="M 135 50 
+           C 138 60, 140 70, 142 75
+           L 145 75
+           C 143 65, 141 55, 139 50
+           C 137 45, 135 40, 133 35" 
+        fill="#1a1a1a" 
+        stroke="#000" 
+        stroke-width="0.5"/>
+  
+  <!-- Hair texture lines for messy effect -->
+  <path d="M 55 30 C 60 35, 65 40, 70 45" stroke="#444" stroke-width="1" fill="none"/>
+  <path d="M 80 25 C 85 30, 90 35, 95 40" stroke="#444" stroke-width="1" fill="none"/>
+  <path d="M 105 25 C 110 30, 115 35, 120 40" stroke="#444" stroke-width="1" fill="none"/>
+  <path d="M 130 30 C 135 35, 140 40, 145 45" stroke="#444" stroke-width="1" fill="none"/>
+  
+  <!-- Additional messy texture -->
+  <path d="M 65 50 C 70 55, 75 60, 80 65" stroke="#333" stroke-width="0.5" fill="none"/>
+  <path d="M 120 50 C 125 55, 130 60, 135 65" stroke="#333" stroke-width="0.5" fill="none"/>
+  
+  <!-- Choppy fringe details -->
+  <path d="M 60 65 C 62 70, 64 75, 66 80" stroke="#555" stroke-width="0.8" fill="none"/>
+  <path d="M 85 60 C 87 65, 89 70, 91 75" stroke="#555" stroke-width="0.8" fill="none"/>
+  <path d="M 110 60 C 112 65, 114 70, 116 75" stroke="#555" stroke-width="0.8" fill="none"/>
+  <path d="M 135 65 C 137 70, 139 75, 141 80" stroke="#555" stroke-width="0.8" fill="none"/>
+</svg>

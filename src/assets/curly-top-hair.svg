@@ -1,0 +1,82 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#f8f9fa"/>
+  
+  <!-- Curly top hair silhouette -->
+  <path d="M 45 70 
+           C 30 50, 25 35, 30 20
+           C 35 12, 50 8, 75 10
+           C 95 5, 125 5, 145 10
+           C 170 8, 185 12, 190 20
+           C 195 35, 190 50, 175 70
+           C 170 85, 165 95, 160 105
+           C 155 115, 150 125, 145 135
+           L 55 135
+           C 50 125, 45 115, 40 105
+           C 35 95, 30 85, 45 70 Z" 
+        fill="#2a2a2a" 
+        stroke="#000" 
+        stroke-width="1"/>
+  
+  <!-- Curly sections on top -->
+  <circle cx="80" cy="35" r="8" fill="#1a1a1a" stroke="#000" stroke-width="0.5"/>
+  <circle cx="100" cy="30" r="9" fill="#1a1a1a" stroke="#000" stroke-width="0.5"/>
+  <circle cx="120" cy="32" r="8" fill="#1a1a1a" stroke="#000" stroke-width="0.5"/>
+  <circle cx="140" cy="38" r="7" fill="#1a1a1a" stroke="#000" stroke-width="0.5"/>
+  
+  <!-- Additional curly texture -->
+  <circle cx="90" cy="45" r="6" fill="#333" stroke="#111" stroke-width="0.3"/>
+  <circle cx="110" cy="42" r="7" fill="#333" stroke="#111" stroke-width="0.3"/>
+  <circle cx="130" cy="48" r="6" fill="#333" stroke="#111" stroke-width="0.3"/>
+  
+  <!-- Smaller curls for texture -->
+  <circle cx="75" cy="50" r="4" fill="#444" stroke="#222" stroke-width="0.2"/>
+  <circle cx="95" cy="55" r="5" fill="#444" stroke="#222" stroke-width="0.2"/>
+  <circle cx="115" cy="52" r="4" fill="#444" stroke="#222" stroke-width="0.2"/>
+  <circle cx="135" cy="58" r="4" fill="#444" stroke="#222" stroke-width="0.2"/>
+  <circle cx="155" cy="55" r="4" fill="#444" stroke="#222" stroke-width="0.2"/>
+  
+  <!-- Side sections - shorter -->
+  <path d="M 45 60 
+           C 50 70, 55 80, 60 90
+           L 65 90
+           C 63 80, 61 70, 59 60
+           C 57 55, 55 50, 53 45" 
+        fill="#3a3a3a" 
+        stroke="#222" 
+        stroke-width="0.5"/>
+        
+  <path d="M 155 60 
+           C 150 70, 145 80, 140 90
+           L 135 90
+           C 137 80, 139 70, 141 60
+           C 143 55, 145 50, 147 45" 
+        fill="#3a3a3a" 
+        stroke="#222" 
+        stroke-width="0.5"/>
+  
+  <!-- Curly spiral details -->
+  <path d="M 85 40 
+           C 87 38, 89 36, 91 38
+           C 93 40, 91 42, 89 44
+           C 87 46, 85 44, 85 42" 
+        stroke="#555" stroke-width="0.8" fill="none"/>
+        
+  <path d="M 105 37 
+           C 107 35, 109 33, 111 35
+           C 113 37, 111 39, 109 41
+           C 107 43, 105 41, 105 39" 
+        stroke="#555" stroke-width="0.8" fill="none"/>
+        
+  <path d="M 125 40 
+           C 127 38, 129 36, 131 38
+           C 133 40, 131 42, 129 44
+           C 127 46, 125 44, 125 42" 
+        stroke="#555" stroke-width="0.8" fill="none"/>
+  
+  <!-- Additional curl definition -->
+  <path d="M 78 32 C 82 28, 86 32, 82 36" stroke="#666" stroke-width="0.6" fill="none"/>
+  <path d="M 98 27 C 102 23, 106 27, 102 31" stroke="#666" stroke-width="0.6" fill="none"/>
+  <path d="M 118 29 C 122 25, 126 29, 122 33" stroke="#666" stroke-width="0.6" fill="none"/>
+  <path d="M 138 35 C 142 31, 146 35, 142 39" stroke="#666" stroke-width="0.6" fill="none"/>
+</svg>
