@@ -151,15 +151,17 @@ export const getCachedImage = async (imageFile, hairstyle, prompt, userId = null
     if (userId) {
       console.log('🔍 Checking user-specific cache for user:', userId, 'with hairstyle:', hairstyle);
       console.log('🔍 Original image hash:', originalImageHash.substring(0, 12) + '...');
+      console.log('🔍 IMPORTANT: Only checking for SELECTED transformations (is_selected = true)');
 
-      // First try: PERFECT MATCH - exact user + original_image_hash + hairstyle_key (most precise)
+      // First try: PERFECT MATCH - exact user + original_image_hash + hairstyle_key + SELECTED (most precise)
       const { data: perfectMatchData, error: perfectMatchError } = await supabase
         .from('ai_images')
-        .select('edited_image_url, status, created_at, hairstyle_key, original_image_hash')
+        .select('edited_image_url, status, created_at, hairstyle_key, original_image_hash, is_selected')
         .eq('user_id', userId)
         .eq('original_image_hash', originalImageHash)
         .eq('hairstyle_key', hairstyle)
         .eq('status', 'completed')
+        .eq('is_selected', true)  // Only return SELECTED transformations
         .not('edited_image_url', 'is', null)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -167,18 +169,20 @@ export const getCachedImage = async (imageFile, hairstyle, prompt, userId = null
       if (perfectMatchError) {
         console.log('🔍 Perfect match cache query error:', perfectMatchError.code, perfectMatchError.message);
       } else if (perfectMatchData && perfectMatchData.length > 0) {
-        console.log('🎯 PERFECT CACHE HIT! Same user + same image + same hairstyle:', perfectMatchData[0].edited_image_url);
+        console.log('🎯 PERFECT CACHE HIT! Same user + same image + same hairstyle + SELECTED:', perfectMatchData[0].edited_image_url);
         console.log('🎯 Original image hash match:', originalImageHash.substring(0, 12) + '...');
+        console.log('🎯 Cache validation: is_selected =', perfectMatchData[0].is_selected);
         return perfectMatchData[0].edited_image_url;
       }
 
-      // Second try: user + hairstyle_key match (without image comparison)
+      // Second try: user + hairstyle_key + SELECTED match (without image comparison)
       const { data: userStyleData, error: userStyleError } = await supabase
         .from('ai_images')
-        .select('edited_image_url, status, created_at, hairstyle_key')
+        .select('edited_image_url, status, created_at, hairstyle_key, is_selected')
         .eq('user_id', userId)
         .eq('hairstyle_key', hairstyle)
         .eq('status', 'completed')
+        .eq('is_selected', true)  // Only return SELECTED transformations
         .not('edited_image_url', 'is', null)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -186,17 +190,18 @@ export const getCachedImage = async (imageFile, hairstyle, prompt, userId = null
       if (userStyleError) {
         console.log('🔍 User+style cache query error:', userStyleError.code, userStyleError.message);
       } else if (userStyleData && userStyleData.length > 0) {
-        console.log('🎯 User cache hit! Found transformation for same user + hairstyle_key:', userStyleData[0].edited_image_url);
+        console.log('🎯 User cache hit! Found SELECTED transformation for same user + hairstyle_key:', userStyleData[0].edited_image_url);
         return userStyleData[0].edited_image_url;
       }
 
-      // Third try: user + prompt pattern match (fallback for older records without hairstyle_key)
+      // Third try: user + prompt pattern match + SELECTED (fallback for older records without hairstyle_key)
       const { data: userPromptData, error: userPromptError } = await supabase
         .from('ai_images')
-        .select('edited_image_url, status, created_at')
+        .select('edited_image_url, status, created_at, is_selected')
         .eq('user_id', userId)
         .ilike('prompt', `%${hairstyle}%`)
         .eq('status', 'completed')
+        .eq('is_selected', true)  // Only return SELECTED transformations
         .not('edited_image_url', 'is', null)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -204,7 +209,7 @@ export const getCachedImage = async (imageFile, hairstyle, prompt, userId = null
       if (userPromptError) {
         console.log('🔍 User+prompt cache query error:', userPromptError.code, userPromptError.message);
       } else if (userPromptData && userPromptData.length > 0) {
-        console.log('🎯 User cache hit! Found transformation for same user + prompt pattern:', userPromptData[0].edited_image_url);
+        console.log('🎯 User cache hit! Found SELECTED transformation for same user + prompt pattern:', userPromptData[0].edited_image_url);
         return userPromptData[0].edited_image_url;
       }
     }
@@ -256,6 +261,12 @@ export const cacheGeneratedImage = async (imageFile, hairstyle, prompt, generate
       userId
     });
 
+    // Check if user is logged in
+    if (!userId) {
+      console.log('⚠️ No user ID provided - skipping database cache');
+      return null;
+    }
+
     // Generate hash for original image for exact matching
     const originalImageHash = await generateImageHash(imageFile);
     console.log('💾 Original image hash:', originalImageHash.substring(0, 12) + '...');
@@ -268,6 +279,16 @@ export const cacheGeneratedImage = async (imageFile, hairstyle, prompt, generate
     }
 
     // Insert into Supabase ai_images table
+    console.log('💾 Attempting to insert into database with data:', {
+      user_id: userId,
+      original_image_url: originalImageUrl?.substring(0, 50) + '...',
+      original_image_hash: originalImageHash?.substring(0, 12) + '...',
+      edited_image_url: generatedImageUrl?.substring(0, 50) + '...',
+      prompt: prompt?.substring(0, 30) + '...',
+      hairstyle_key: hairstyle,
+      status: 'completed'
+    });
+
     const { data, error } = await supabase
       .from('ai_images')
       .insert({
@@ -284,7 +305,12 @@ export const cacheGeneratedImage = async (imageFile, hairstyle, prompt, generate
       .single();
 
     if (error) {
-      console.log('💾 Cache insert error:', error.code, error.message);
+      console.error('💾 Cache insert error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       throw error;
     }
 
@@ -380,7 +406,7 @@ export const testStorageAccess = async () => {
  * @param {string} imageId - The ID of the image to update
  * @param {boolean} isSelected - Whether to mark as selected or not
  * @param {string} userId - User ID (optional, for better security)
- * @returns {Promise<{success: boolean, data?: any, message?: string}>} - Result with success status and data
+ * @returns {Promise<boolean>} - Success status
  */
 export const updateImageSelection = async (imageId, isSelected, userId = null) => {
   try {
@@ -389,8 +415,7 @@ export const updateImageSelection = async (imageId, isSelected, userId = null) =
     let query = supabase
       .from('ai_images')
       .update({ is_selected: isSelected })
-      .eq('id', imageId)
-      .select('*'); // Return updated record
+      .eq('id', imageId);
 
     // Add user filter if provided for security
     if (userId) {
@@ -401,102 +426,15 @@ export const updateImageSelection = async (imageId, isSelected, userId = null) =
 
     if (error) {
       console.error('❌ Failed to update image selection:', error);
-      return { success: false, message: 'Failed to update selection' };
-    }
-
-    if (!data || data.length === 0) {
-      console.error('❌ No image found with ID:', imageId);
-      return { success: false, message: 'Image not found' };
+      return false;
     }
 
     console.log(`✅ Image ${isSelected ? 'selected' : 'deselected'} successfully`);
-    return { success: true, data: data[0], message: `Image ${isSelected ? 'selected' : 'deselected'} successfully` };
+    return true;
 
   } catch (error) {
     console.error('❌ Error updating image selection:', error);
-    return { success: false, message: 'Error updating selection' };
-  }
-};
-
-/**
- * Toggle image selection (if selected -> deselect, if not selected -> select)
- * @param {string} imageId - The ID of the image to toggle
- * @param {string} userId - User ID for security
- * @returns {Promise<{success: boolean, isSelected: boolean, data?: any, message?: string}>} - Result with new selection state
- */
-export const toggleImageSelection = async (imageId, userId = null) => {
-  try {
-    console.log('🔄 Toggling image selection for:', imageId);
-
-    // First, get current selection state
-    let query = supabase
-      .from('ai_images')
-      .select('is_selected')
-      .eq('id', imageId);
-
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-
-    const { data: currentData, error: fetchError } = await query.single();
-
-    if (fetchError) {
-      console.error('❌ Failed to fetch current selection state:', fetchError);
-      return { success: false, message: 'Failed to fetch image data' };
-    }
-
-    // Toggle the selection
-    const newSelectionState = !currentData.is_selected;
-
-    // Update with new state
-    const updateResult = await updateImageSelection(imageId, newSelectionState, userId);
-
-    if (updateResult.success) {
-      return {
-        success: true,
-        isSelected: newSelectionState,
-        data: updateResult.data,
-        message: `Image ${newSelectionState ? 'selected' : 'deselected'} successfully`
-      };
-    } else {
-      return updateResult;
-    }
-
-  } catch (error) {
-    console.error('❌ Error toggling image selection:', error);
-    return { success: false, message: 'Error toggling selection' };
-  }
-};
-
-/**
- * Check if an image is currently selected
- * @param {string} imageId - The ID of the image to check
- * @param {string} userId - User ID for security
- * @returns {Promise<{success: boolean, isSelected: boolean, message?: string}>} - Selection status
- */
-export const checkImageSelection = async (imageId, userId = null) => {
-  try {
-    let query = supabase
-      .from('ai_images')
-      .select('is_selected')
-      .eq('id', imageId);
-
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-
-    const { data, error } = await query.single();
-
-    if (error) {
-      console.error('❌ Failed to check image selection:', error);
-      return { success: false, isSelected: false, message: 'Failed to check selection' };
-    }
-
-    return { success: true, isSelected: data.is_selected || false };
-
-  } catch (error) {
-    console.error('❌ Error checking image selection:', error);
-    return { success: false, isSelected: false, message: 'Error checking selection' };
+    return false;
   }
 };
 

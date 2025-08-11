@@ -6,7 +6,8 @@ import Navbar from '../../components/common_components/navbar/Navbar.jsx'; // As
 import Header from '../home/components/Header.jsx'; // Assuming this component exists
 import UserProfile from '../../components/auth/UserProfile.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
-import { getCachedImage, cacheGeneratedImage, getCacheStats, updateImageSelection, getSelectedImages, clearAllSelections, toggleImageSelection, checkImageSelection } from '../../services/imageCache';
+import { getCacheStats, updateImageSelection, getSelectedImages } from '../../services/imageCache';
+import { supabase } from '../../lib/supabase';
 // Import images with correct naming to match keys
 import texturedQuiffImage from '../../assets/hairStyle/textured_quiff.png';
 import pompadourImage from '../../assets/hairStyle/pompadour.png';
@@ -49,12 +50,17 @@ const TryNow = () => {
   });
   const [completedCrop, setCompletedCrop] = useState(null);
   const [selectedImages, setSelectedImages] = useState([]); // Track selected images
-  const [showSelectedImages, setShowSelectedImages] = useState(false); // Toggle selected images view
   const [currentImageId, setCurrentImageId] = useState(null); // Track current generated image ID
-  const [currentImageSelected, setCurrentImageSelected] = useState(false); // Track if current image is selected
+  const [isCurrentImageSelected, setIsCurrentImageSelected] = useState(false); // Track if current image is selected
+  const [triedHairstyles, setTriedHairstyles] = useState(new Set()); // Track which hairstyles user has tried
+  const [selectedHairstyles, setSelectedHairstyles] = useState(new Set()); // Track which hairstyles are selected (is_selected = true)
+
   const imgRef = useRef(null);
 
   const fileInputRef = useRef(null);
+
+  // Get user from auth context
+  const { user } = useAuth();
 
   // Configuration - Replace with your actual API key from environment variables
   const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
@@ -111,6 +117,339 @@ const TryNow = () => {
       loadSelectedImages();
     }
   }, [user?.id]);
+
+  // Check if current image is already selected based on URL and prompt
+  const checkIfCurrentImageSelected = async (imageUrl, prompt) => {
+    try {
+      if (!user?.id || !imageUrl || !prompt) return;
+
+      // Check if any selected image has the same URL and prompt
+      const isSelected = selectedImages.some(img =>
+        img.edited_image_url === imageUrl && img.prompt === prompt
+      );
+
+      setIsCurrentImageSelected(isSelected);
+
+      if (isSelected) {
+        setStatus({
+          message: '✅ This image is already in your selected collection!',
+          type: 'success'
+        });
+      }
+    } catch (error) {
+      console.error('Error checking image selection:', error);
+    }
+  };
+
+  // Check current image selection status when selectedImages or resultImage changes
+  useEffect(() => {
+    if (resultImage && selectedImages.length > 0) {
+      // Get current prompt from selected style
+      const currentPrompt = selectedStyle.key ? HAIR_STYLE_PROMPTS[selectedStyle.key] : '';
+
+      // Check if current result image is already selected
+      const isSelected = selectedImages.some(img =>
+        img.edited_image_url === resultImage && img.prompt === currentPrompt
+      );
+
+      setIsCurrentImageSelected(isSelected);
+    } else {
+      setIsCurrentImageSelected(false);
+    }
+  }, [selectedImages, resultImage, selectedStyle.key]);
+
+  // Fetch user's tried hairstyles from database
+  const fetchTriedHairstyles = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('ai_images')
+        .select('hairstyle_key, is_selected')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .not('edited_image_url', 'is', null);
+
+      if (error) {
+        console.error('❌ Error fetching tried hairstyles:', error);
+        return;
+      }
+
+      // Extract unique hairstyle keys and their selection status
+      const triedKeys = new Set();
+      const selectedKeys = new Set();
+
+      data.forEach(item => {
+        if (item.hairstyle_key) {
+          triedKeys.add(item.hairstyle_key);
+          if (item.is_selected) {
+            selectedKeys.add(item.hairstyle_key);
+          }
+        }
+      });
+
+      setTriedHairstyles(triedKeys);
+      setSelectedHairstyles(selectedKeys);
+
+      console.log('✅ Fetched tried hairstyles:', Array.from(triedKeys));
+      console.log('✅ Fetched selected hairstyles:', Array.from(selectedKeys));
+    } catch (error) {
+      console.error('❌ Error fetching tried hairstyles:', error);
+    }
+  };
+
+  // Fetch tried hairstyles when user changes
+  useEffect(() => {
+    fetchTriedHairstyles();
+  }, [user?.id]);
+
+  // Debug function for console testing
+  window.debugTriedHairstyles = () => {
+    console.log('🔍 Current tried hairstyles:', Array.from(triedHairstyles));
+    console.log('🔍 User ID:', user?.id);
+    fetchTriedHairstyles();
+  };
+
+  // Manual save function for testing
+  window.saveCurrentHairstyle = () => {
+    if (selectedStyle?.key && resultImage) {
+      const originalUrl = imageFile ? URL.createObjectURL(imageFile) : 'https://placeholder.com/original.jpg';
+      const prompt = `Applied ${selectedStyle.key} hairstyle`;
+      saveTriedHairstyle(selectedStyle.key, originalUrl, resultImage, prompt, true); // Save as selected
+      console.log('💾 Manually saved:', selectedStyle.key);
+    } else {
+      console.log('❌ No hairstyle selected or no result image');
+    }
+  };
+
+  // Toggle selection function for testing
+  window.toggleSelection = (hairstyleKey) => {
+    if (hairstyleKey) {
+      toggleHairstyleSelection(hairstyleKey);
+      console.log('🔄 Toggled selection for:', hairstyleKey);
+    } else if (selectedStyle?.key) {
+      toggleHairstyleSelection(selectedStyle.key);
+      console.log('🔄 Toggled selection for current style:', selectedStyle.key);
+    } else {
+      console.log('❌ No hairstyle specified');
+    }
+  };
+
+  // Test duplicate check function
+  window.testDuplicateCheck = async () => {
+    if (!selectedStyle?.key) {
+      console.log('❌ Need hairstyle selected');
+      return;
+    }
+
+    const existing = await checkExistingTransformation(selectedStyle.key);
+
+    if (existing) {
+      console.log('🎯 Found existing SELECTED transformation:', existing);
+      console.log('💡 Will reuse this result instead of generating new one');
+    } else {
+      console.log('💫 No existing SELECTED transformation found');
+      console.log('💡 Will generate new transformation (even if unselected version exists)');
+    }
+  };
+
+  // Check if same user + hairstyle combination already exists in database AND is selected
+  const checkExistingTransformation = async (hairstyleKey) => {
+    if (!user?.id) {
+      console.log('⚠️ User not logged in - cannot check database');
+      return null;
+    }
+
+    try {
+      console.log('🔍 Checking for existing SELECTED transformation:', {
+        user_id: user.id,
+        hairstyle_key: hairstyleKey
+      });
+
+      // Only check for transformations that are SELECTED (is_selected = true)
+      const { data, error } = await supabase
+        .from('ai_images')
+        .select('id, edited_image_url, created_at, prompt, is_selected')
+        .eq('user_id', user.id)
+        .eq('hairstyle_key', hairstyleKey)
+        .eq('status', 'completed')
+        .eq('is_selected', true)  // Only return if selected
+        .not('edited_image_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('❌ Error checking existing transformation:', error);
+        return null;
+      }
+
+      if (data && data.length > 0) {
+        console.log('🎯 Found existing SELECTED transformation! ID:', data[0].id);
+        console.log('🎯 Will reuse existing result:', data[0].edited_image_url);
+        return data[0];
+      }
+
+      console.log('💫 No existing SELECTED transformation found - will generate new one');
+      console.log('💡 Note: User may have tried this hairstyle before but not selected it');
+      return null;
+    } catch (error) {
+      console.error('❌ Error checking existing transformation:', error);
+      return null;
+    }
+  };
+
+  // Check if unselected version exists and update it, otherwise create new
+  const saveOrUpdateHairstyle = async (hairstyleKey, originalImageUrl, editedImageUrl, prompt, isSelected = true) => {
+    if (!user?.id) {
+      console.log('⚠️ User not logged in - cannot save to database');
+      return false;
+    }
+
+    try {
+      // First check if there's an unselected version of this hairstyle
+      const { data: existingData, error: fetchError } = await supabase
+        .from('ai_images')
+        .select('id, is_selected')
+        .eq('user_id', user.id)
+        .eq('hairstyle_key', hairstyleKey)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (fetchError) {
+        console.error('❌ Error checking existing records:', fetchError);
+      }
+
+      // If unselected version exists, update it
+      if (existingData && existingData.length > 0 && !existingData[0].is_selected) {
+        console.log('� Updating existing unselected record:', existingData[0].id);
+
+        const { data: updateData, error: updateError } = await supabase
+          .from('ai_images')
+          .update({
+            original_image_url: originalImageUrl || 'https://placeholder.com/original.jpg',
+            edited_image_url: editedImageUrl || 'https://placeholder.com/edited.jpg',
+            prompt: prompt || `Applied ${hairstyleKey} hairstyle`,
+            is_selected: isSelected
+          })
+          .eq('id', existingData[0].id)
+          .select('id')
+          .single();
+
+        if (updateError) {
+          console.error('❌ Failed to update hairstyle:', updateError);
+          return false;
+        }
+
+        console.log('✅ Hairstyle updated successfully with ID:', updateData.id);
+        return updateData.id;
+      }
+
+      // Otherwise create new record
+      console.log('💾 Creating new hairstyle record:', hairstyleKey, 'Selected:', isSelected);
+
+      const { data, error } = await supabase
+        .from('ai_images')
+        .insert({
+          user_id: user.id,
+          original_image_url: originalImageUrl || 'https://placeholder.com/original.jpg',
+          edited_image_url: editedImageUrl || 'https://placeholder.com/edited.jpg',
+          prompt: prompt || `Applied ${hairstyleKey} hairstyle`,
+          hairstyle_key: hairstyleKey,
+          status: 'completed',
+          is_selected: isSelected
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('❌ Failed to save hairstyle:', error);
+        return false;
+      }
+
+      console.log('✅ Hairstyle saved successfully with ID:', data.id);
+      return data.id;
+    } catch (error) {
+      console.error('❌ Error saving hairstyle:', error);
+      return false;
+    }
+  };
+
+  // Simple function to save hairstyle to database (backward compatibility)
+  const saveTriedHairstyle = async (hairstyleKey, originalImageUrl, editedImageUrl, prompt, isSelected = true) => {
+    return await saveOrUpdateHairstyle(hairstyleKey, originalImageUrl, editedImageUrl, prompt, isSelected);
+  };
+
+  // Toggle selection status of a hairstyle
+  const toggleHairstyleSelection = async (hairstyleKey) => {
+    if (!user?.id) {
+      console.log('⚠️ User not logged in');
+      return false;
+    }
+
+    try {
+      // Get current selection status
+      const { data: currentData, error: fetchError } = await supabase
+        .from('ai_images')
+        .select('id, is_selected')
+        .eq('user_id', user.id)
+        .eq('hairstyle_key', hairstyleKey)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (fetchError) {
+        console.error('❌ Error fetching current selection:', fetchError);
+        return false;
+      }
+
+      if (!currentData || currentData.length === 0) {
+        console.log('❌ No record found for hairstyle:', hairstyleKey);
+        return false;
+      }
+
+      const currentRecord = currentData[0];
+      const newSelectionStatus = !currentRecord.is_selected;
+
+      // Update selection status
+      const { error: updateError } = await supabase
+        .from('ai_images')
+        .update({ is_selected: newSelectionStatus })
+        .eq('id', currentRecord.id);
+
+      if (updateError) {
+        console.error('❌ Error updating selection:', updateError);
+        return false;
+      }
+
+      console.log(`✅ ${newSelectionStatus ? 'Selected' : 'Deselected'} hairstyle:`, hairstyleKey);
+
+      // Refresh the tried hairstyles to update UI
+      await fetchTriedHairstyles();
+
+      return true;
+    } catch (error) {
+      console.error('❌ Error toggling selection:', error);
+      return false;
+    }
+  };
+
+  // Test database connection
+  window.testDatabaseConnection = async () => {
+    console.log('🧪 Testing database connection...');
+    console.log('🔍 User:', user);
+
+    if (!user?.id) {
+      console.error('❌ No user logged in!');
+      return;
+    }
+
+    const result = await saveTriedHairstyle('test_style', 'https://test.com/test.jpg');
+    if (result) {
+      console.log('✅ Database test successful!');
+      await fetchTriedHairstyles(); // Refresh the list
+    }
+  };
 
   // Simple face shape detection (basic implementation)
   const detectFaceShape = async (imageFile) => {
@@ -201,6 +540,8 @@ const TryNow = () => {
     setSelectedStyle(style);
     // Clear previous results when new style is selected
     setResultImage(null);
+    setCurrentImageId(null);
+    setIsCurrentImageSelected(false); // Reset selection status
     setImageLoadError(false);
     setStatus({ message: `✨ ${style.name} selected! Upload a photo to transform.`, type: 'success' });
 
@@ -211,64 +552,32 @@ const TryNow = () => {
     console.log(`📝 Corresponding prompt:`, HAIR_STYLE_PROMPTS[style.key]);
   };
 
-  // Handle image selection/deselection with toggle functionality
-  const handleImageToggle = async (imageId) => {
-    try {
-      setStatus({ message: 'Updating selection...', type: 'info' });
-
-      const result = await toggleImageSelection(imageId, user?.id);
-
-      if (result.success) {
-        // Update current image selection state if it's the current image
-        if (imageId === currentImageId) {
-          setCurrentImageSelected(result.isSelected);
-        }
-
-        // Refresh selected images list
-        await loadSelectedImages();
-
-        setStatus({
-          message: result.message,
-          type: 'success'
-        });
-      } else {
-        setStatus({
-          message: result.message || 'Failed to update selection',
-          type: 'error'
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling selection:', error);
-      setStatus({
-        message: 'Error updating selection',
-        type: 'error'
-      });
-    }
-  };
-
-  // Handle direct selection/deselection (for remove buttons)
+  // Handle image selection/deselection
   const handleImageSelection = async (imageId, isSelected) => {
     try {
-      setStatus({ message: 'Updating selection...', type: 'info' });
-
-      const result = await updateImageSelection(imageId, isSelected, user?.id);
-
-      if (result.success) {
-        // Update current image selection state if it's the current image
-        if (imageId === currentImageId) {
-          setCurrentImageSelected(isSelected);
-        }
-
-        // Refresh selected images list
+      const success = await updateImageSelection(imageId, isSelected, user?.id);
+      if (success) {
+        // Reload selected images to get updated data
         await loadSelectedImages();
 
+        // Update current image selection status if this is the current image
+        if (imageId === currentImageId) {
+          setIsCurrentImageSelected(isSelected);
+        }
+
+        // Clear browser cache when image is deselected
+        if (!isSelected) {
+          console.log('🗑️ Image deselected - clearing browser cache');
+          clearBrowserCache();
+        }
+
         setStatus({
-          message: result.message,
+          message: isSelected ? 'Image selected!' : 'Image deselected! Next generation will be fresh.',
           type: 'success'
         });
       } else {
         setStatus({
-          message: result.message || 'Failed to update selection',
+          message: 'Failed to update selection',
           type: 'error'
         });
       }
@@ -278,20 +587,6 @@ const TryNow = () => {
         message: 'Error updating selection',
         type: 'error'
       });
-    }
-  };
-
-  // Check current image selection status
-  const checkCurrentImageSelection = async (imageId) => {
-    if (!imageId || !user?.id) return;
-
-    try {
-      const result = await checkImageSelection(imageId, user.id);
-      if (result.success) {
-        setCurrentImageSelected(result.isSelected);
-      }
-    } catch (error) {
-      console.error('Error checking image selection:', error);
     }
   };
 
@@ -307,27 +602,7 @@ const TryNow = () => {
     }
   };
 
-  // Clear all selections
-  const handleClearAllSelections = async () => {
-    if (!user?.id) return;
 
-    try {
-      const success = await clearAllSelections(user.id);
-      if (success) {
-        setSelectedImages([]);
-        setStatus({
-          message: 'All selections cleared!',
-          type: 'success'
-        });
-      }
-    } catch (error) {
-      console.error('Error clearing selections:', error);
-      setStatus({
-        message: 'Error clearing selections',
-        type: 'error'
-      });
-    }
-  };
 
   // Check if image is square
   const checkImageDimensions = (file) => {
@@ -735,21 +1010,32 @@ const TryNow = () => {
 
     setIsProcessing(true);
     setResultImage(null);
+    setIsCurrentImageSelected(false); // Reset selection status
     setImageLoadError(false);
 
     try {
-      // Check cache first
-      setStatus({ message: "🔍 Checking cache for existing transformation...", type: '' });
-      const cachePrompt = `${PRESERVATION_PROMPT} ${HAIR_STYLE_PROMPTS[selectedStyle.key]}`;
-      const cachedImageUrl = await getCachedImage(imageFile, selectedStyle.key, cachePrompt, user?.id);
+      // Step 1: Generate URLs for comparison
+      const originalImageUrl = URL.createObjectURL(imageFile);
 
-      if (cachedImageUrl) {
-        console.log('🎯 Cache hit! Using cached image:', cachedImageUrl);
-        setResultImage(cachedImageUrl);
-        setStatus({ message: `✅ ${selectedStyle.name} loaded from cache instantly! 🚀`, type: 'success' });
+      // Step 2: Check if user has already tried this hairstyle
+      setStatus({ message: "🔍 Checking database for existing transformation...", type: '' });
+      const existingTransformation = await checkExistingTransformation(selectedStyle.key);
+
+      if (existingTransformation) {
+        console.log('🎯 Database hit! Using existing transformation:', existingTransformation.edited_image_url);
+        setResultImage(existingTransformation.edited_image_url);
+
+        // Fetch fresh tried hairstyles from database to update green indicators
+        await fetchTriedHairstyles();
+        console.log('✅ Refreshed tried hairstyles from database (database hit)');
+
+        setStatus({ message: `✅ ${selectedStyle.name} loaded from database instantly! 🚀`, type: 'success' });
         setIsProcessing(false);
         return;
       }
+
+      // Step 3: Cache disabled - always generate fresh transformation
+      console.log('� Cache disabled - generating fresh transformation for better user experience');
 
       console.log('💫 Cache miss - generating new transformation');
       setStatus({ message: `🚀 Generating new ${selectedStyle.name} transformation...`, type: '' });
@@ -849,21 +1135,29 @@ const TryNow = () => {
       // Store for download purposes
       window.currentImageData = imageDataUrl;
 
-      // Cache the generated image for future use
-      setStatus({ message: `💾 Saving to cache for faster future access...`, type: '' });
-      const cacheId = await cacheGeneratedImage(processedImageFile, selectedStyle.key, finalPrompt, imageDataUrl, user?.id);
+      // Save to database directly (cache disabled)
+      setStatus({ message: `💾 Saving transformation to database...`, type: '' });
 
-      if (cacheId) {
-        console.log('✅ Image successfully cached with ID:', cacheId);
-        setCurrentImageId(cacheId); // Store the current image ID for selection
-        setCurrentImageSelected(false); // New images are not selected by default
-        // Check if this image is already selected (in case of cache hit)
-        await checkCurrentImageSelection(cacheId);
-        // Update cache stats
+      // Save to database with all details
+      const savedId = await saveTriedHairstyle(selectedStyle.key, originalImageUrl, imageDataUrl, finalPrompt);
+
+      if (savedId) {
+        console.log('✅ Image successfully saved to database with ID:', savedId);
+        setCurrentImageId(savedId); // Store the current image ID for selection
+
+        // Fetch fresh tried hairstyles from database to update green indicators
+        await fetchTriedHairstyles();
+        console.log('✅ Refreshed tried hairstyles from database');
+
+        // Check if this image is already selected based on URL and prompt
+        await checkIfCurrentImageSelected(imageDataUrl, finalPrompt);
+
+        // Update cache stats (for display purposes only)
         const updatedStats = await getCacheStats();
         setCacheStats(updatedStats);
       } else {
-        console.log('⚠️ Failed to cache image, but transformation successful');
+        console.log('⚠️ Failed to save to database');
+        setStatus({ message: '❌ Failed to save transformation', type: 'error' });
       }
 
       setStatus({ message: `✅ ${selectedStyle.name} Applied Successfully! Clean white background. 🎉`, type: 'success' });
@@ -929,343 +1223,12 @@ const TryNow = () => {
     setImageFile(null);
     setResultImage(null);
     setCurrentImageId(null); // Clear current image ID
-    setCurrentImageSelected(false); // Reset selection state
+    setIsCurrentImageSelected(false); // Reset selection status
     setStatus({ message: '', type: '' });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }
-
-  const { user } = useAuth();
-
-  // return (
-  //   <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
-  //     {/* Custom Header with User Profile */}
-  //     <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-800 shadow-lg">
-  //       <div className="container mx-auto px-4 py-4">
-  //         <div className="flex items-center justify-between">
-  //           {/* Logo and Title */}
-  //           <div className="flex items-center space-x-3">
-  //             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-  //               <span className="text-2xl">💇‍♀️</span>
-  //             </div>
-  //             <div>
-  //               <h1 className="text-2xl font-bold text-white">HeadZ</h1>
-  //               <p className="text-blue-100 text-sm">AI Hairstyle Transformation</p>
-  //             </div>
-  //           </div>
-
-  //           {/* User Profile */}
-  //           <UserProfile />
-  //         </div>
-  //       </div>
-  //     </div>
-
-  //     <Navbar />
-
-  //     <div className="container mx-auto px-4 py-8">
-  //       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl mx-auto p-6 md:p-8">
-
-  //         <div className="text-center mb-6">
-  //           <h1 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
-  //             Transform your look instantly with our free AI hairstyle changer
-  //           </h1>
-  //           <p className="text-gray-600">
-  //             Upload your photo and try different hairstyles and colors instantly
-  //           </p>
-  //         </div>
-
-  //         <div className="bg-blue-50 border-l-4 border-indigo-400 p-4 mb-6 rounded-lg">
-  //           <h4 className="font-bold text-gray-800 mb-2">📋 How to use:</h4>
-  //           <ol className="list-decimal list-inside text-gray-700 text-sm space-y-1">
-  //             <li><strong>Select a hairstyle</strong> from the gallery below.</li>
-  //             <li><strong>Upload or take a photo</strong> using the buttons.</li>
-  //             <li><strong>Click "Transform Hair"</strong> to see the magic!</li>
-  //           </ol>
-  //         </div>
-
-  //         {selectedStyle.name && (
-  //           <div className="mb-6 p-5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl text-white text-center shadow-lg">
-  //             <div className="text-xl font-bold mb-2">✨ Selected Hairstyle</div>
-  //             <div className="text-lg opacity-95 uppercase tracking-wide">{selectedStyle.name}</div>
-  //           </div>
-  //         )}
-
-  //         {faceShape && recommendations.length > 0 && (
-  //           <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-400 rounded-lg">
-  //             <h4 className="font-bold text-green-800 mb-2">🎯 AI Recommendations for {faceShape.toUpperCase()} face:</h4>
-  //             <p className="text-green-700 text-sm">
-  //               Based on your face shape, we recommend: {recommendations.map(key =>
-  //                 hairstyles.find(h => h.key === key)?.name
-  //               ).filter(Boolean).join(', ')}
-  //             </p>
-  //           </div>
-  //         )}
-
-  //         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mb-8">
-  //           {hairstyles.map((style) => {
-  //             const isRecommended = recommendations.includes(style.key);
-  //             const isSelected = selectedStyle.key === style.key;
-
-  //             return (
-  //               <div
-  //                 key={style.key}
-  //                 className={`cursor-pointer transition-all duration-300 hover:scale-105 group relative ${
-  //                   isSelected
-  //                     ? 'ring-4 ring-green-500'
-  //                     : isRecommended
-  //                       ? 'ring-3 ring-blue-400'
-  //                       : 'ring-2 ring-transparent'
-  //                 } rounded-2xl`}
-  //                 onClick={() => selectHairstyle(style)}
-  //               >
-  //                 {isRecommended && (
-  //                   <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold z-10">
-  //                     AI Pick
-  //                   </div>
-  //                 )}
-  //               <div className="h-56 md:h-64 bg-white rounded-xl flex flex-col items-center justify-center text-gray-800 font-bold text-center p-4 shadow-md transition-all duration-300 group-hover:shadow-xl border-2 border-gray-200">
-  //                 <div className="flex flex-col items-center justify-center h-full">
-  //                   <img
-  //                     src={style.image}
-  //                     alt={style.name}
-  //                     className="w-28 h-28 md:w-32 md:h-32 object-contain rounded-lg mb-2"
-  //                   />
-  //                   <div className="text-base font-semibold">{style.name}</div>
-  //                 </div>
-  //               </div>
-  //             </div>
-  //             );
-  //           })}
-  //         </div>
-
-  //         <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 mb-6 text-center bg-gray-50">
-  //           {!imagePreview ? (
-  //             <>
-  //               <div className="flex justify-center gap-4 mb-4">
-  //                 <button onClick={() => setIsCameraOpen(true)} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-  //                   📷 Take Photo
-  //                 </button>
-  //                 <button onClick={() => fileInputRef.current?.click()} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-  //                   📁 Upload File
-  //                 </button>
-  //               </div>
-  //               <p className="text-xs text-gray-500">Supports JPG, PNG, WebP. Non-PNG images will be converted.</p>
-  //             </>
-  //           ) : (
-  //             <div className="text-center">
-  //               <div className="relative inline-block">
-  //                 <img
-  //                   src={imagePreview.src}
-  //                   alt="Preview"
-  //                   className="max-w-full max-h-48 mx-auto rounded-lg shadow-md mb-2"
-  //                 />
-  //                 <button onClick={reset} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors" aria-label="Remove image">
-  //                   ×
-  //                 </button>
-  //               </div>
-  //               <div className="text-sm text-gray-600">
-  //                 <span className="font-medium">{imagePreview.name}</span> - <span>{imagePreview.size}</span>
-  //               </div>
-  //               <button onClick={reset} className="text-purple-600 hover:text-purple-700 text-sm font-medium mt-2">
-  //                 Change Photo
-  //               </button>
-  //             </div>
-  //           )}
-  //           <input
-  //             ref={fileInputRef}
-  //             type="file"
-  //             accept="image/jpeg,image/png,image/webp"
-  //             onChange={handleFileUpload}
-  //             className="hidden"
-  //           />
-  //         </div>
-
-  //         {/* Quality Mode Selector */}
-  //         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-  //           <h4 className="font-bold text-gray-800 mb-3">🎨 Quality Mode:</h4>
-  //           <div className="flex flex-wrap gap-2 justify-center">
-  //             {Object.entries(QUALITY_MODES).map(([mode, config]) => (
-  //               <button
-  //                 key={mode}
-  //                 onClick={() => setQualityMode(mode)}
-  //                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
-  //                   qualityMode === mode
-  //                     ? 'bg-indigo-500 text-white shadow-lg'
-  //                     : 'bg-white text-gray-700 hover:bg-indigo-100'
-  //                 }`}
-  //               >
-  //                 {config.description}
-  //               </button>
-  //             ))}
-  //           </div>
-  //         </div>
-
-  //         <div className="text-center mb-6">
-  //           <button
-  //             onClick={editImage}
-  //             disabled={isProcessing}
-  //             className={`px-8 py-3 rounded-lg font-bold text-white transition-all duration-300 w-full md:w-auto ${isProcessing
-  //                 ? 'bg-blue-300 cursor-not-allowed'
-  //                 : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl'
-  //               }`}
-  //           >
-  //             {isProcessing ? 'Processing...' : '✨ Transform Hair'}
-  //           </button>
-  //         </div>
-
-  //         {status.message && (
-  //           <div className={`text-center p-3 rounded-lg font-medium mb-6 ${status.type === 'error' ? 'text-red-600 bg-red-50' :
-  //               status.type === 'success' ? 'text-green-600 bg-green-50' :
-  //                 'text-blue-600 bg-blue-50'
-  //             }`}>
-  //             {status.message}
-  //           </div>
-  //         )}
-
-  //         {arPreview && !resultImage && (
-  //           <div className="flex flex-col items-center mb-6">
-  //             <h3 className="text-lg font-bold text-gray-800 mb-4">🔮 AR Preview</h3>
-  //             <div className="relative">
-  //               <img
-  //                 src={arPreview}
-  //                 alt="AR Preview"
-  //                 className="w-80 h-80 object-cover rounded-2xl border-4 border-purple-500 shadow-2xl"
-  //               />
-  //               <div className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-1 rounded text-xs font-bold">
-  //                 PREVIEW
-  //               </div>
-  //             </div>
-  //             <p className="text-sm text-gray-600 mt-2 text-center max-w-xs">
-  //               This is a quick preview. Click "Transform Hair" for the actual AI transformation!
-  //             </p>
-  //           </div>
-  //         )}
-
-  //         {resultImage && (
-  //           <div className="flex flex-col items-center">
-  //             <h3 className="text-2xl font-bold text-gray-800 mb-6">✨ Transformation Complete!</h3>
-
-  //             {/* Before/After Comparison */}
-  //             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-  //               {imagePreview && (
-  //                 <div className="text-center">
-  //                   <h4 className="font-bold text-gray-700 mb-2">BEFORE</h4>
-  //                   <img
-  //                     src={imagePreview.src}
-  //                     alt="Original"
-  //                     className="w-64 h-64 object-cover rounded-xl border-2 border-gray-300 shadow-lg"
-  //                   />
-  //                 </div>
-  //               )}
-  //               <div className="text-center">
-  //                 <h4 className="font-bold text-gray-700 mb-2">AFTER</h4>
-  //                 <div className="relative">
-  //                   {resultImage && !imageLoadError ? (
-  //                     <img
-  //                       src={resultImage}
-  //                       alt="Transformed Hair"
-  //                       className="w-64 h-64 object-cover rounded-xl border-4 border-indigo-500 shadow-2xl"
-  //                       onError={(e) => {
-  //                         console.error('❌ Image failed to load:', resultImage);
-  //                         setImageLoadError(true);
-  //                         setStatus({
-  //                           message: 'Image loading failed. The transformation was successful but the image cannot be displayed. Please try downloading or transforming again.',
-  //                           type: 'error'
-  //                         });
-  //                       }}
-  //                       onLoad={() => {
-  //                         console.log('✅ Image loaded successfully:', resultImage);
-  //                         setImageLoadError(false);
-  //                       }}
-  //                     />
-  //                   ) : resultImage && imageLoadError ? (
-  //                     <div className="w-64 h-64 bg-red-100 rounded-xl border-4 border-red-300 flex flex-col items-center justify-center text-red-600 text-sm p-4">
-  //                       <div className="text-center">
-  //                         <div className="text-2xl mb-2">⚠️</div>
-  //                         <div className="font-bold mb-1">Image Load Failed</div>
-  //                         <div className="text-xs">Transformation completed but image cannot be displayed</div>
-  //                         <button
-  //                           onClick={() => {
-  //                             setImageLoadError(false);
-  //                             // Force reload by adding new timestamp
-  //                             const newUrl = resultImage.split('?')[0] + '?t=' + Date.now();
-  //                             setResultImage(newUrl);
-  //                           }}
-  //                           className="mt-2 px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
-  //                         >
-  //                           Retry Load
-  //                         </button>
-  //                       </div>
-  //                     </div>
-  //                   ) : (
-  //                     <div className="w-64 h-64 bg-gray-200 rounded-xl border-4 border-gray-300 flex items-center justify-center">
-  //                       <span className="text-gray-500">Loading...</span>
-  //                     </div>
-  //                   )}
-  //                   <div className="absolute top-2 right-2 bg-indigo-500 text-white px-2 py-1 rounded text-xs font-bold">
-  //                     {selectedStyle.name}
-  //                   </div>
-  //                 </div>
-  //               </div>
-  //             </div>
-
-  //             <div className="flex flex-wrap gap-4 justify-center">
-  //               <button
-  //                 onClick={downloadImage}
-  //                 className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-lg transition-all"
-  //               >
-  //                 💾 Download Result
-  //               </button>
-  //               <button
-  //                 onClick={() => {
-  //                   setResultImage(null);
-  //                   setArPreview(null);
-  //                   setImageLoadError(false);
-  //                   setStatus({ message: 'Ready for next transformation!', type: 'success' });
-  //                 }}
-  //                 className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-lg shadow-lg transition-all"
-  //               >
-  //                 🔄 Try Another Style
-  //               </button>
-  //               {imageLoadError && (
-  //                 <button
-  //                   onClick={() => {
-  //                     console.log('🔍 Debug Info:');
-  //                     console.log('Current resultImage:', resultImage);
-  //                     console.log('Current imageData:', window.currentImageData);
-  //                     console.log('Image Load Error:', imageLoadError);
-  //                     console.log('Is Base64:', resultImage?.startsWith('data:'));
-
-  //                     // Try to open image in new tab
-  //                     if (resultImage) {
-  //                       if (resultImage.startsWith('data:')) {
-  //                         // Base64 data URL - open directly
-  //                         window.open(resultImage, '_blank');
-  //                       } else {
-  //                         // Regular URL - try to open
-  //                         window.open(resultImage, '_blank');
-  //                       }
-  //                     }
-  //                   }}
-  //                   className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-lg shadow-lg transition-all text-sm"
-  //                 >
-  //                   🔍 Debug Image
-  //                 </button>
-  //               )}
-  //             </div>
-  //           </div>
-  //         )}
-
-  //         <CameraCapture
-  //           isOpen={isCameraOpen}
-  //           onCapture={handleCameraCapture}
-  //           onClose={() => setIsCameraOpen(false)}
-  //         />
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
 
   return (
   <div className="min-h-screen bg-gray-50">
@@ -1291,29 +1254,66 @@ const TryNow = () => {
 
             {/* Hairstyle Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-              {hairstyles.map((style) => (
-                <div
-                  key={style.key}
-                  className={`relative cursor-pointer rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 ${
-                    selectedStyle.key === style.key ? 'ring-4 ring-blue-500 shadow-lg' : 'hover:shadow-md'
-                  }`}
-                  onClick={() => selectHairstyle(style)}
-                >
-                  <img
-                    src={style.image}
-                    alt={style.name}
-                    className="w-full h-48 md:h-52 object-cover"
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent text-white p-4">
-                    <p className="text-base font-semibold text-center">{style.name}</p>
-                  </div>
-                  {selectedStyle.key === style.key && (
-                    <div className="absolute top-3 right-3 bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center">
-                      <span className="text-sm">✓</span>
+              {hairstyles.map((style) => {
+                const isSelected = selectedStyle.key === style.key;
+                const isTried = triedHairstyles.has(style.key);
+                const isHairstyleSelected = selectedHairstyles.has(style.key);
+
+                return (
+                  <div
+                    key={style.key}
+                    className={`relative cursor-pointer rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 ${
+                      isSelected
+                        ? 'ring-4 ring-blue-500 shadow-lg'
+                        : isHairstyleSelected
+                        ? 'ring-2 ring-green-500 shadow-md'
+                        : isTried
+                        ? 'ring-2 ring-gray-400 shadow-md'
+                        : 'hover:shadow-md'
+                    }`}
+                    onClick={() => selectHairstyle(style)}
+                  >
+                    <img
+                      src={style.image}
+                      alt={style.name}
+                      className="w-full h-48 md:h-52 object-cover"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent text-white p-4">
+                      <p className="text-base font-semibold text-center">{style.name}</p>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {/* Selected indicator (blue) */}
+                    {isSelected && (
+                      <div className="absolute top-3 right-3 bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                        <span className="text-sm">✓</span>
+                      </div>
+                    )}
+
+                    {/* Hairstyle Selected indicator (green) - only show if not currently selected */}
+                    {!isSelected && isHairstyleSelected && (
+                      <div className="absolute top-3 left-3 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+                        <span className="text-xs">✓</span>
+                      </div>
+                    )}
+
+
+
+                    {/* Toggle selection button for selected hairstyles */}
+                    {!isSelected && isHairstyleSelected && (
+                      <div
+                        className="absolute top-3 right-3 bg-gray-500 text-white rounded-full w-6 h-6 flex items-center justify-center cursor-pointer hover:bg-gray-600 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent triggering selectHairstyle
+                          toggleHairstyleSelection(style.key);
+                        }}
+                        title="Click to deselect this hairstyle"
+                      >
+                        <span className="text-xs">✗</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Navigation arrows */}
@@ -1323,7 +1323,7 @@ const TryNow = () => {
               </button>
               <div className="text-center">
                 {selectedStyle.name ? (
-                  <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-semibold">
+                  <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-semibold">
                     ✨ Selected: {selectedStyle.name}
                   </div>
                 ) : (
@@ -1598,39 +1598,13 @@ const TryNow = () => {
               >
                 💾 Download Result
               </button>
-              <button
-                onClick={() => {
-                  if (currentImageId) {
-                    handleImageToggle(currentImageId);
-                  } else {
-                    setStatus({
-                      message: 'Please wait for the image to be saved before selecting',
-                      type: 'error'
-                    });
-                  }
-                }}
-                disabled={!currentImageId}
-                className={`px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all ${
-                  !currentImageId
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : currentImageSelected
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
-                    : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-                }`}
-              >
-                {!currentImageId
-                  ? '⏳ Saving...'
-                  : currentImageSelected
-                  ? '❌ Deselect Image'
-                  : '⭐ Select This Image'
-                }
-              </button>
+
               <button
                 onClick={() => {
                   setResultImage(null);
                   setArPreview(null);
                   setCurrentImageId(null); // Clear current image ID
-                  setCurrentImageSelected(false); // Reset selection state
+                  setIsCurrentImageSelected(false); // Reset selection status
                   setImageLoadError(false);
                   setStatus({ message: 'Ready for next transformation!', type: 'success' });
                 }}
@@ -1667,135 +1641,7 @@ const TryNow = () => {
           </div>
         )}
 
-        {/* Selected Images Section - Always show if user is logged in */}
-        {user && (
-          <div className="mt-8">
-            {selectedImages.length > 0 ? (
-              <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 shadow-lg border border-green-200">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                  ✓
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                    Selected Images
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected for download
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowSelectedImages(!showSelectedImages)}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-                >
-                  {showSelectedImages ? '🙈 Hide' : '👁️ Show'}
-                  <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
-                    {selectedImages.length}
-                  </span>
-                </button>
-                <button
-                  onClick={handleClearAllSelections}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all"
-                >
-                  🗑️ Clear All
-                </button>
-              </div>
-            </div>
 
-                {showSelectedImages && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {selectedImages.map((image, index) => (
-                      <div key={image.id || index} className="relative group">
-                        <div className="relative overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-all border-2 border-green-400 bg-green-50">
-                          {/* Selected indicator badge */}
-                          <div className="absolute top-2 left-2 z-10">
-                            <div className="bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg">
-                              ✓
-                            </div>
-                          </div>
-
-                          <img
-                            src={image.edited_image_url || image.original_image_url}
-                            alt={`Selected ${index + 1}`}
-                            className="w-full h-32 object-cover group-hover:scale-105 transition-transform"
-                          />
-
-                          {/* Remove button */}
-                          <div className="absolute top-2 right-2 z-10">
-                            <button
-                              onClick={() => handleImageSelection(image.id, false)}
-                              className="bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg transition-all hover:scale-110"
-                              title="Remove from selection"
-                            >
-                              ✕
-                            </button>
-                          </div>
-
-                          {/* Image info overlay */}
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                            <p className="text-white text-xs font-medium truncate">
-                              {image.hairstyle_key ? image.hairstyle_key.replace('_', ' ').toUpperCase() : 'Unknown Style'}
-                            </p>
-                            <p className="text-green-300 text-xs">
-                              ✓ Selected
-                            </p>
-                          </div>
-
-                          {/* Hover overlay with actions */}
-                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleImageSelection(image.id, false)}
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow-lg transition-all"
-                              >
-                                Remove
-                              </button>
-                              <button
-                                onClick={() => {
-                                  // Download functionality for selected image
-                                  const link = document.createElement('a');
-                                  link.href = image.edited_image_url || image.original_image_url;
-                                  link.download = `hairstyle_${image.hairstyle_key || 'image'}_${Date.now()}.png`;
-                                  link.click();
-                                }}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow-lg transition-all"
-                              >
-                                Download
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Empty state when no images are selected */
-              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-8 shadow-lg border border-gray-200 text-center">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="bg-gray-300 text-gray-600 rounded-full w-16 h-16 flex items-center justify-center text-2xl">
-                    📋
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-700 mb-2">
-                      No Images Selected Yet
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      Generate some hairstyles and click "⭐ Select This Image" to add them to your collection
-                    </p>
-                    <div className="text-sm text-gray-500">
-                      💡 Tip: Selected images will appear here for easy access and download
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         <CameraCapture
           isOpen={isCameraOpen}
