@@ -277,6 +277,7 @@ export const cacheGeneratedImage = async (imageFile, hairstyle, prompt, generate
         edited_image_url: generatedImageUrl,
         prompt: prompt,
         hairstyle_key: hairstyle, // Store the hairstyle key for efficient lookups
+        is_selected: false, // Default to not selected
         status: 'completed'
       })
       .select('id')
@@ -371,6 +372,190 @@ export const testStorageAccess = async () => {
   } catch (error) {
     console.error('❌ Storage test failed:', error);
     return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Mark an image as selected/unselected
+ * @param {string} imageId - The ID of the image to update
+ * @param {boolean} isSelected - Whether to mark as selected or not
+ * @param {string} userId - User ID (optional, for better security)
+ * @returns {Promise<{success: boolean, data?: any, message?: string}>} - Result with success status and data
+ */
+export const updateImageSelection = async (imageId, isSelected, userId = null) => {
+  try {
+    console.log(`🎯 ${isSelected ? 'Selecting' : 'Deselecting'} image:`, imageId);
+
+    let query = supabase
+      .from('ai_images')
+      .update({ is_selected: isSelected })
+      .eq('id', imageId)
+      .select('*'); // Return updated record
+
+    // Add user filter if provided for security
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('❌ Failed to update image selection:', error);
+      return { success: false, message: 'Failed to update selection' };
+    }
+
+    if (!data || data.length === 0) {
+      console.error('❌ No image found with ID:', imageId);
+      return { success: false, message: 'Image not found' };
+    }
+
+    console.log(`✅ Image ${isSelected ? 'selected' : 'deselected'} successfully`);
+    return { success: true, data: data[0], message: `Image ${isSelected ? 'selected' : 'deselected'} successfully` };
+
+  } catch (error) {
+    console.error('❌ Error updating image selection:', error);
+    return { success: false, message: 'Error updating selection' };
+  }
+};
+
+/**
+ * Toggle image selection (if selected -> deselect, if not selected -> select)
+ * @param {string} imageId - The ID of the image to toggle
+ * @param {string} userId - User ID for security
+ * @returns {Promise<{success: boolean, isSelected: boolean, data?: any, message?: string}>} - Result with new selection state
+ */
+export const toggleImageSelection = async (imageId, userId = null) => {
+  try {
+    console.log('🔄 Toggling image selection for:', imageId);
+
+    // First, get current selection state
+    let query = supabase
+      .from('ai_images')
+      .select('is_selected')
+      .eq('id', imageId);
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data: currentData, error: fetchError } = await query.single();
+
+    if (fetchError) {
+      console.error('❌ Failed to fetch current selection state:', fetchError);
+      return { success: false, message: 'Failed to fetch image data' };
+    }
+
+    // Toggle the selection
+    const newSelectionState = !currentData.is_selected;
+
+    // Update with new state
+    const updateResult = await updateImageSelection(imageId, newSelectionState, userId);
+
+    if (updateResult.success) {
+      return {
+        success: true,
+        isSelected: newSelectionState,
+        data: updateResult.data,
+        message: `Image ${newSelectionState ? 'selected' : 'deselected'} successfully`
+      };
+    } else {
+      return updateResult;
+    }
+
+  } catch (error) {
+    console.error('❌ Error toggling image selection:', error);
+    return { success: false, message: 'Error toggling selection' };
+  }
+};
+
+/**
+ * Check if an image is currently selected
+ * @param {string} imageId - The ID of the image to check
+ * @param {string} userId - User ID for security
+ * @returns {Promise<{success: boolean, isSelected: boolean, message?: string}>} - Selection status
+ */
+export const checkImageSelection = async (imageId, userId = null) => {
+  try {
+    let query = supabase
+      .from('ai_images')
+      .select('is_selected')
+      .eq('id', imageId);
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query.single();
+
+    if (error) {
+      console.error('❌ Failed to check image selection:', error);
+      return { success: false, isSelected: false, message: 'Failed to check selection' };
+    }
+
+    return { success: true, isSelected: data.is_selected || false };
+
+  } catch (error) {
+    console.error('❌ Error checking image selection:', error);
+    return { success: false, isSelected: false, message: 'Error checking selection' };
+  }
+};
+
+/**
+ * Get all selected images for a user
+ * @param {string} userId - User ID
+ * @returns {Promise<Array>} - Array of selected images
+ */
+export const getSelectedImages = async (userId) => {
+  try {
+    console.log('📋 Fetching selected images for user:', userId);
+
+    const { data, error } = await supabase
+      .from('ai_images')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_selected', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ Failed to fetch selected images:', error);
+      return [];
+    }
+
+    console.log(`✅ Found ${data.length} selected images`);
+    return data;
+
+  } catch (error) {
+    console.error('❌ Error fetching selected images:', error);
+    return [];
+  }
+};
+
+/**
+ * Clear all selections for a user
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} - Success status
+ */
+export const clearAllSelections = async (userId) => {
+  try {
+    console.log('🧹 Clearing all selections for user:', userId);
+
+    const { data, error } = await supabase
+      .from('ai_images')
+      .update({ is_selected: false })
+      .eq('user_id', userId)
+      .eq('is_selected', true);
+
+    if (error) {
+      console.error('❌ Failed to clear selections:', error);
+      return false;
+    }
+
+    console.log('✅ All selections cleared successfully');
+    return true;
+
+  } catch (error) {
+    console.error('❌ Error clearing selections:', error);
+    return false;
   }
 };
 

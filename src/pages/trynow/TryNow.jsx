@@ -6,7 +6,7 @@ import Navbar from '../../components/common_components/navbar/Navbar.jsx'; // As
 import Header from '../home/components/Header.jsx'; // Assuming this component exists
 import UserProfile from '../../components/auth/UserProfile.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
-import { getCachedImage, cacheGeneratedImage, getCacheStats } from '../../services/imageCache';
+import { getCachedImage, cacheGeneratedImage, getCacheStats, updateImageSelection, getSelectedImages, clearAllSelections, toggleImageSelection, checkImageSelection } from '../../services/imageCache';
 // Import images with correct naming to match keys
 import texturedQuiffImage from '../../assets/hairStyle/textured_quiff.png';
 import pompadourImage from '../../assets/hairStyle/pompadour.png';
@@ -48,6 +48,10 @@ const TryNow = () => {
     aspect: 1 // Square aspect ratio
   });
   const [completedCrop, setCompletedCrop] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]); // Track selected images
+  const [showSelectedImages, setShowSelectedImages] = useState(false); // Toggle selected images view
+  const [currentImageId, setCurrentImageId] = useState(null); // Track current generated image ID
+  const [currentImageSelected, setCurrentImageSelected] = useState(false); // Track if current image is selected
   const imgRef = useRef(null);
 
   const fileInputRef = useRef(null);
@@ -100,6 +104,13 @@ const TryNow = () => {
     hd: { size: '1024x1024', description: 'High Definition' },
     professional: { size: '1024x1024', description: 'Professional Grade' }
   };
+
+  // Load selected images when user changes
+  useEffect(() => {
+    if (user?.id) {
+      loadSelectedImages();
+    }
+  }, [user?.id]);
 
   // Simple face shape detection (basic implementation)
   const detectFaceShape = async (imageFile) => {
@@ -198,6 +209,124 @@ const TryNow = () => {
 
     console.log(`🎯 Selected hairstyle: ${style.name} (${style.key})`);
     console.log(`📝 Corresponding prompt:`, HAIR_STYLE_PROMPTS[style.key]);
+  };
+
+  // Handle image selection/deselection with toggle functionality
+  const handleImageToggle = async (imageId) => {
+    try {
+      setStatus({ message: 'Updating selection...', type: 'info' });
+
+      const result = await toggleImageSelection(imageId, user?.id);
+
+      if (result.success) {
+        // Update current image selection state if it's the current image
+        if (imageId === currentImageId) {
+          setCurrentImageSelected(result.isSelected);
+        }
+
+        // Refresh selected images list
+        await loadSelectedImages();
+
+        setStatus({
+          message: result.message,
+          type: 'success'
+        });
+      } else {
+        setStatus({
+          message: result.message || 'Failed to update selection',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling selection:', error);
+      setStatus({
+        message: 'Error updating selection',
+        type: 'error'
+      });
+    }
+  };
+
+  // Handle direct selection/deselection (for remove buttons)
+  const handleImageSelection = async (imageId, isSelected) => {
+    try {
+      setStatus({ message: 'Updating selection...', type: 'info' });
+
+      const result = await updateImageSelection(imageId, isSelected, user?.id);
+
+      if (result.success) {
+        // Update current image selection state if it's the current image
+        if (imageId === currentImageId) {
+          setCurrentImageSelected(isSelected);
+        }
+
+        // Refresh selected images list
+        await loadSelectedImages();
+
+        setStatus({
+          message: result.message,
+          type: 'success'
+        });
+      } else {
+        setStatus({
+          message: result.message || 'Failed to update selection',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error updating selection:', error);
+      setStatus({
+        message: 'Error updating selection',
+        type: 'error'
+      });
+    }
+  };
+
+  // Check current image selection status
+  const checkCurrentImageSelection = async (imageId) => {
+    if (!imageId || !user?.id) return;
+
+    try {
+      const result = await checkImageSelection(imageId, user.id);
+      if (result.success) {
+        setCurrentImageSelected(result.isSelected);
+      }
+    } catch (error) {
+      console.error('Error checking image selection:', error);
+    }
+  };
+
+  // Load selected images for user
+  const loadSelectedImages = async () => {
+    if (!user?.id) return;
+
+    try {
+      const images = await getSelectedImages(user.id);
+      setSelectedImages(images);
+    } catch (error) {
+      console.error('Error loading selected images:', error);
+    }
+  };
+
+  // Clear all selections
+  const handleClearAllSelections = async () => {
+    if (!user?.id) return;
+
+    try {
+      const success = await clearAllSelections(user.id);
+      if (success) {
+        setSelectedImages([]);
+        setStatus({
+          message: 'All selections cleared!',
+          type: 'success'
+        });
+      }
+    } catch (error) {
+      console.error('Error clearing selections:', error);
+      setStatus({
+        message: 'Error clearing selections',
+        type: 'error'
+      });
+    }
   };
 
   // Check if image is square
@@ -726,6 +855,10 @@ const TryNow = () => {
 
       if (cacheId) {
         console.log('✅ Image successfully cached with ID:', cacheId);
+        setCurrentImageId(cacheId); // Store the current image ID for selection
+        setCurrentImageSelected(false); // New images are not selected by default
+        // Check if this image is already selected (in case of cache hit)
+        await checkCurrentImageSelection(cacheId);
         // Update cache stats
         const updatedStats = await getCacheStats();
         setCacheStats(updatedStats);
@@ -795,6 +928,8 @@ const TryNow = () => {
     setImagePreview(null);
     setImageFile(null);
     setResultImage(null);
+    setCurrentImageId(null); // Clear current image ID
+    setCurrentImageSelected(false); // Reset selection state
     setStatus({ message: '', type: '' });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -1465,8 +1600,37 @@ const TryNow = () => {
               </button>
               <button
                 onClick={() => {
+                  if (currentImageId) {
+                    handleImageToggle(currentImageId);
+                  } else {
+                    setStatus({
+                      message: 'Please wait for the image to be saved before selecting',
+                      type: 'error'
+                    });
+                  }
+                }}
+                disabled={!currentImageId}
+                className={`px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all ${
+                  !currentImageId
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : currentImageSelected
+                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
+                    : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                }`}
+              >
+                {!currentImageId
+                  ? '⏳ Saving...'
+                  : currentImageSelected
+                  ? '❌ Deselect Image'
+                  : '⭐ Select This Image'
+                }
+              </button>
+              <button
+                onClick={() => {
                   setResultImage(null);
                   setArPreview(null);
+                  setCurrentImageId(null); // Clear current image ID
+                  setCurrentImageSelected(false); // Reset selection state
                   setImageLoadError(false);
                   setStatus({ message: 'Ready for next transformation!', type: 'success' });
                 }}
@@ -1500,6 +1664,136 @@ const TryNow = () => {
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Selected Images Section - Always show if user is logged in */}
+        {user && (
+          <div className="mt-8">
+            {selectedImages.length > 0 ? (
+              <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 shadow-lg border border-green-200">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                  ✓
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                    Selected Images
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected for download
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSelectedImages(!showSelectedImages)}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                >
+                  {showSelectedImages ? '🙈 Hide' : '👁️ Show'}
+                  <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                    {selectedImages.length}
+                  </span>
+                </button>
+                <button
+                  onClick={handleClearAllSelections}
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+                >
+                  🗑️ Clear All
+                </button>
+              </div>
+            </div>
+
+                {showSelectedImages && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {selectedImages.map((image, index) => (
+                      <div key={image.id || index} className="relative group">
+                        <div className="relative overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-all border-2 border-green-400 bg-green-50">
+                          {/* Selected indicator badge */}
+                          <div className="absolute top-2 left-2 z-10">
+                            <div className="bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg">
+                              ✓
+                            </div>
+                          </div>
+
+                          <img
+                            src={image.edited_image_url || image.original_image_url}
+                            alt={`Selected ${index + 1}`}
+                            className="w-full h-32 object-cover group-hover:scale-105 transition-transform"
+                          />
+
+                          {/* Remove button */}
+                          <div className="absolute top-2 right-2 z-10">
+                            <button
+                              onClick={() => handleImageSelection(image.id, false)}
+                              className="bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg transition-all hover:scale-110"
+                              title="Remove from selection"
+                            >
+                              ✕
+                            </button>
+                          </div>
+
+                          {/* Image info overlay */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                            <p className="text-white text-xs font-medium truncate">
+                              {image.hairstyle_key ? image.hairstyle_key.replace('_', ' ').toUpperCase() : 'Unknown Style'}
+                            </p>
+                            <p className="text-green-300 text-xs">
+                              ✓ Selected
+                            </p>
+                          </div>
+
+                          {/* Hover overlay with actions */}
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleImageSelection(image.id, false)}
+                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow-lg transition-all"
+                              >
+                                Remove
+                              </button>
+                              <button
+                                onClick={() => {
+                                  // Download functionality for selected image
+                                  const link = document.createElement('a');
+                                  link.href = image.edited_image_url || image.original_image_url;
+                                  link.download = `hairstyle_${image.hairstyle_key || 'image'}_${Date.now()}.png`;
+                                  link.click();
+                                }}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow-lg transition-all"
+                              >
+                                Download
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Empty state when no images are selected */
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-8 shadow-lg border border-gray-200 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="bg-gray-300 text-gray-600 rounded-full w-16 h-16 flex items-center justify-center text-2xl">
+                    📋
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-700 mb-2">
+                      No Images Selected Yet
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Generate some hairstyles and click "⭐ Select This Image" to add them to your collection
+                    </p>
+                    <div className="text-sm text-gray-500">
+                      💡 Tip: Selected images will appear here for easy access and download
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

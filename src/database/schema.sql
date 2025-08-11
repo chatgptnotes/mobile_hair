@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.ai_images (
   edited_image_url TEXT NULL,
   prompt TEXT NOT NULL,
   hairstyle_key TEXT NULL, -- Added for better caching (e.g., 'textured_quiff', 'pompadour')
+  is_selected BOOLEAN NULL DEFAULT false, -- Track if image is currently selected by user
   status TEXT NULL DEFAULT 'processing'::text,
   created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
@@ -34,6 +35,8 @@ CREATE INDEX IF NOT EXISTS idx_ai_images_hairstyle_key ON ai_images(hairstyle_ke
 CREATE INDEX IF NOT EXISTS idx_ai_images_original_hash ON ai_images(original_image_hash);
 CREATE INDEX IF NOT EXISTS idx_ai_images_user_hairstyle ON ai_images(user_id, hairstyle_key); -- Composite index for fast user+style lookup
 CREATE INDEX IF NOT EXISTS idx_ai_images_user_image_style ON ai_images(user_id, original_image_hash, hairstyle_key); -- Perfect cache match
+CREATE INDEX IF NOT EXISTS idx_ai_images_is_selected ON ai_images(is_selected); -- For filtering selected images
+CREATE INDEX IF NOT EXISTS idx_ai_images_user_selected ON ai_images(user_id, is_selected); -- For user's selected images
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
