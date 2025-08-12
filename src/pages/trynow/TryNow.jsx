@@ -76,24 +76,75 @@ const TryNow = () => {
   // };
 
     // UNIVERSAL PRESERVATION PROMPT - Applied to ALL hairstyles
-    const PRESERVATION_PROMPT = `PRESERVE EXACT SAME PERSON. Keep face, glasses, beard, clothing identical. ONLY add hair to head.`;
+  //   const PRESERVATION_PROMPT = `PRESERVE EXACT SAME PERSON. Keep face, glasses, beard, clothing identical. ONLY add hair to head.`;
 
-    // Hair-specific prompts (will be combined with face preservation)
-    const HAIR_STYLE_PROMPTS = {
+  //   // Hair-specific prompts (will be combined with face preservation)
+  //   const HAIR_STYLE_PROMPTS = {
 
-    'textured_quiff': `Add Textured Quiff: dark brown hair, short faded sides, textured top styled upward. Keep same face, glasses, beard.`,
+  //   'textured_quiff': `Add Textured Quiff: dark brown hair, short faded sides, textured top styled upward. Keep same face, glasses, beard.`,
 
-    'pompadour': `Add Pompadour: dark brown hair combed back with volume, faded sides. Keep same face, glasses, beard.`,
+  //   'pompadour': `Add Pompadour: dark brown hair combed back with volume, faded sides. Keep same face, glasses, beard.`,
 
-    'classic_pompadour': `Add Classic Pompadour: dark brown hair swept back with height, smooth look. Keep same face, glasses, beard.`,
+  //   'classic_pompadour': `Add Classic Pompadour: dark brown hair swept back with height, smooth look. Keep same face, glasses, beard.`,
 
-    'side_swept_pompadour': `Add Side-Swept Pompadour: dark brown hair swept to side with volume. Keep same face, glasses, beard.`,
+  //   'side_swept_pompadour': `Add Side-Swept Pompadour: dark brown hair swept to side with volume. Keep same face, glasses, beard.`,
 
-    'short_side_part': `Add Short Side Part: dark brown hair with neat side parting, professional look. Keep same face, glasses, beard.`,
+  //   'short_side_part': `Add Short Side Part: dark brown hair with neat side parting, professional look. Keep same face, glasses, beard.`,
 
-    'curly_top': `Add Curly Top: dark brown curly hair on top, short faded sides. Keep same face, glasses, beard.`
-  };
+  //   'curly_top': `Add Curly Top: dark brown curly hair on top, short faded sides. Keep same face, glasses, beard.`
+  // };
 
+const PRESERVATION_PROMPT = `
+PRESERVE: Same person, exact facial structure, skin tone, expression, glasses, beard, and clothing. 
+DO NOT alter facial proportions, eye color, beard style, or outfit. 
+ONLY modify the hair on the head as instructed. Maintain realistic blending and lighting. 
+`;
+
+const HAIR_STYLE_PROMPTS = {
+  
+  'textured_quiff': `
+Add a Textured Quiff hairstyle: natural dark brown hair, short faded sides (skin fade or low fade), 
+textured voluminous top styled slightly upward with loose strands for realism. Maintain natural hairline. 
+Keep same face, glasses, beard, and clothing.
+`,
+
+  'pompadour': `
+Add a Modern Pompadour: natural dark brown hair with high volume at the front, smoothly combed back, 
+faded or tapered sides, polished and slightly glossy finish. Maintain natural hairline. 
+Keep same face, glasses, beard, and clothing.
+`,
+
+  'classic_pompadour': `
+Add a Classic Pompadour: natural dark brown hair swept back with height, smooth and controlled style, 
+medium sides (not skin faded), retro-inspired look. Maintain natural hairline. 
+Keep same face, glasses, beard, and clothing.
+`,
+
+  'side_swept_pompadour': `
+Add a Side-Swept Pompadour: natural dark brown hair with high volume, combed and swept to one side, 
+tapered sides for clean contrast, light texture on top. Maintain natural hairline. 
+Keep same face, glasses, beard, and clothing.
+`,
+
+  'short_side_part': `
+Add a Short Side Part hairstyle: neat, natural dark brown hair with a defined side parting, 
+short sides and back, clean professional appearance. Maintain natural hairline. 
+Keep same face, glasses, beard, and clothing.
+`,
+
+  'curly_top': `
+Add a Curly Top hairstyle: natural dark brown curly hair concentrated on top, 
+short faded or tapered sides for definition, well-defined curls with natural volume. Maintain natural hairline. 
+Keep same face, glasses, beard, and clothing.
+`
+};
+
+
+
+
+
+
+  
   // Face shape recommendations
   const FACE_SHAPE_RECOMMENDATIONS = {
     oval: ['textured_quiff', 'pompadour', 'classic_pompadour'],
