@@ -103,38 +103,22 @@ Ensure realistic hairline integration, natural shadows, and lighting consistency
 `;
 
 // Hair styles with "deadline" precision
+ const PRESERVATION_PROMPT = `PRESERVE EXACT SAME PERSON. Keep original face, skin tone, expression, glasses, beard, and clothing identical. ONLY modify the hair on the head. Natural hairline, realistic texture, and correct lighting. No changes to other features.`;
+
+// Hair-specific prompts
 const HAIR_STYLE_PROMPTS = {
 
-  'textured_quiff': `
-Add a Textured Quiff hairstyle identical to the reference: natural dark brown hair, short faded sides 
-(skin fade or low fade) with clean edges, voluminous textured top styled upward with slight forward direction, 
-a few loose strands for realism. Maintain natural hairline blending with forehead.
-`,
+  'textured_quiff': `${PRESERVATION_PROMPT} Add a realistic Textured Quiff hairstyle: dark brown hair, short faded sides, voluminous textured top styled slightly upward and forward. Individual hair strands visible, natural scalp blending.`,
 
-  'pompadour': `
-Add a Modern Pompadour as per the reference: natural dark brown hair with high lifted volume at the front, 
-smoothly combed back, faded/tapered sides with clean gradient, slightly glossy finish for realism. Maintain natural hairline.
-`,
+  'pompadour': `${PRESERVATION_PROMPT} Add a realistic Pompadour hairstyle: dark brown hair combed smoothly back with high volume, clean faded sides. Subtle shine and well-groomed look.`,
 
-  'classic_pompadour': `
-Add a Classic Pompadour like the reference: natural dark brown hair swept back with height, 
-smooth polished surface, medium-length sides (not faded), retro-inspired contour. Maintain natural hairline.
-`,
+  'classic_pompadour': `${PRESERVATION_PROMPT} Add a Classic Pompadour hairstyle: dark brown hair swept back with a soft curve, smooth surface, and even height. Side fade neat and clean.`,
 
-  'side_swept_pompadour': `
-Add a Side-Swept Pompadour matching the reference: natural dark brown hair with high volume, 
-combed and swept to one side in a defined arc, tapered sides, soft textured top for realism. Maintain natural hairline.
-`,
+  'side_swept_pompadour': `${PRESERVATION_PROMPT} Add a Side-Swept Pompadour hairstyle: dark brown hair styled with volume and a side sweep, faded sides, and natural shine.`,
 
-  'short_side_part': `
-Add a Short Side Part exactly like the reference: neat, natural dark brown hair with a sharp side part, 
-short sides and back with clean finish, slightly combed top for professional look. Maintain natural hairline.
-`,
+  'short_side_part': `${PRESERVATION_PROMPT} Add a Short Side Part hairstyle: dark brown hair with a neat, defined side part, short tapered sides, and smooth professional finish.`,
 
-  'curly_top': `
-Add a Curly Top exactly as in the reference: natural dark brown curls concentrated on top, 
-short faded or tapered sides, defined curl texture with realistic depth and shadows. Maintain natural hairline.
-`
+  'curly_top': `${PRESERVATION_PROMPT} Add a Curly Top hairstyle: dark brown tight curls on the top with short faded sides. Natural curl texture, soft shadows, and realistic blending with scalp.`
 };
 
 
