@@ -103,9 +103,9 @@ ONLY modify the hair on the head as instructed. Maintain realistic blending and 
 const HAIR_STYLE_PROMPTS = {
   
   'textured_quiff': `
-Add a Textured Quiff hairstyle: natural dark brown hair, short faded sides (skin fade or low fade), 
-textured voluminous top styled slightly upward with loose strands for realism. Maintain natural hairline. 
-Keep same face, glasses, beard, and clothing.
+ Replace hair with textured messy quiff. Dark brown, 2.5 inches on top with natural waves.
+ Individual strands visible, realistic texture. Short fade sides. Natural hairline with roots.
+ Keep face, lighting unchanged.
 `,
 
   'pompadour': `
@@ -127,15 +127,15 @@ Keep same face, glasses, beard, and clothing.
 `,
 
   'short_side_part': `
-Add a Short Side Part hairstyle: neat, natural dark brown hair with a defined side parting, 
-short sides and back, clean professional appearance. Maintain natural hairline. 
-Keep same face, glasses, beard, and clothing.
+ Add realistic slick back hairstyle. Dark brown hair combed straight back from forehead.
+ Natural shine, well-groomed appearance.
+ Individual hair strands visible. Natural scalp and hairline. Keep original face unchanged.
 `,
 
   'curly_top': `
-Add a Curly Top hairstyle: natural dark brown curly hair concentrated on top, 
-short faded or tapered sides for definition, well-defined curls with natural volume. Maintain natural hairline. 
-Keep same face, glasses, beard, and clothing.
+Add realistic messy fringe hairstyle. Dark brown hair, choppy bangs covering forehead. 
+Textured layers, individual hair strands visible.
+Natural scalp and hairline. Keep original face unchanged.
 `
 };
 
