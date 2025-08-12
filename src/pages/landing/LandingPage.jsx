@@ -82,7 +82,7 @@ const LandingPage = () => {
     },
     {
       icon: "💾",
-      title: "Save & Share",
+      title: "Save & Share",   
       description: "Save your favorite looks and share them with friends and family"
     }
   ];
