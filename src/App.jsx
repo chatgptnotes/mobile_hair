@@ -9,6 +9,7 @@ import About from './pages/about/About'
 import Contact from './pages/contact/Contact'
 import Gallery from './pages/gallery/Gallery'
 import Styles from './pages/styles/Styles'
+import AuthCallback from './pages/auth/AuthCallback'
 
 // Root route: show landing if not logged in, or redirect to /home if logged in
 const RootRoute = () => {
@@ -24,6 +25,9 @@ const App = () => {
         <Routes>
           {/* Root: Landing when logged out, redirect to /home when logged in */}
           <Route path="/" element={<RootRoute />} />
+
+          {/* Auth callback route */}
+          <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* Protected routes - require authentication */}
           <Route path="/home" element={

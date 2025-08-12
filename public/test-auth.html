@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+    <button onclick="testAuth()">Test Google Auth</button>
+    <div id="result"></div>
+
+    <script>
+        function testAuth() {
+            const clientId = '224476939177-omt6a72n0m7bg7vutpoimuagfecc8rmb.apps.googleusercontent.com';
+            const redirectUri = 'https://headz-2.vercel.app/auth/callback';
+            
+            const authUrl = `https://accounts.google.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email profile`;
+            
+            document.getElementById('result').innerHTML = `
+                <p>Client ID: ${clientId}</p>
+                <p>Redirect URI: ${redirectUri}</p>
+                <p>Auth URL: <a href="${authUrl}" target="_blank">Test Auth</a></p>
+            `;
+        }
+    </script>
+</body>
+</html>
