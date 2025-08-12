@@ -95,52 +95,47 @@ const TryNow = () => {
   // };
 
 const PRESERVATION_PROMPT = `
-PRESERVE: Same person, exact facial structure, skin tone, expression, glasses, beard, and clothing. 
-DO NOT alter facial proportions, eye color, beard style, or outfit. 
-ONLY modify the hair on the head as instructed. Maintain realistic blending and lighting. 
+PRESERVE PERSON: Keep the exact same identity — identical face shape, proportions, skin tone, eye color, 
+facial expression, glasses, beard style, and clothing. 
+DO NOT alter or smooth facial features, remove accessories, or change the outfit. 
+ONLY modify the scalp hair exactly as described, matching the style, direction, and texture of the given hairstyle reference. 
+Ensure realistic hairline integration, natural shadows, and lighting consistency so it blends seamlessly with the existing image.
 `;
 
+// Hair styles with "deadline" precision
 const HAIR_STYLE_PROMPTS = {
-  
+
   'textured_quiff': `
- Replace hair with textured messy quiff. Dark brown, 2.5 inches on top with natural waves.
- Individual strands visible, realistic texture. Short fade sides. Natural hairline with roots.
- Keep face, lighting unchanged.
+Add a Textured Quiff hairstyle identical to the reference: natural dark brown hair, short faded sides 
+(skin fade or low fade) with clean edges, voluminous textured top styled upward with slight forward direction, 
+a few loose strands for realism. Maintain natural hairline blending with forehead.
 `,
 
   'pompadour': `
-Add a Modern Pompadour: natural dark brown hair with high volume at the front, smoothly combed back, 
-faded or tapered sides, polished and slightly glossy finish. Maintain natural hairline. 
-Keep same face, glasses, beard, and clothing.
+Add a Modern Pompadour as per the reference: natural dark brown hair with high lifted volume at the front, 
+smoothly combed back, faded/tapered sides with clean gradient, slightly glossy finish for realism. Maintain natural hairline.
 `,
 
   'classic_pompadour': `
-Add a Classic Pompadour: natural dark brown hair swept back with height, smooth and controlled style, 
-medium sides (not skin faded), retro-inspired look. Maintain natural hairline. 
-Keep same face, glasses, beard, and clothing.
+Add a Classic Pompadour like the reference: natural dark brown hair swept back with height, 
+smooth polished surface, medium-length sides (not faded), retro-inspired contour. Maintain natural hairline.
 `,
 
   'side_swept_pompadour': `
-Add a Side-Swept Pompadour: natural dark brown hair with high volume, combed and swept to one side, 
-tapered sides for clean contrast, light texture on top. Maintain natural hairline. 
-Keep same face, glasses, beard, and clothing.
+Add a Side-Swept Pompadour matching the reference: natural dark brown hair with high volume, 
+combed and swept to one side in a defined arc, tapered sides, soft textured top for realism. Maintain natural hairline.
 `,
 
   'short_side_part': `
- Add realistic slick back hairstyle. Dark brown hair combed straight back from forehead.
- Natural shine, well-groomed appearance.
- Individual hair strands visible. Natural scalp and hairline. Keep original face unchanged.
+Add a Short Side Part exactly like the reference: neat, natural dark brown hair with a sharp side part, 
+short sides and back with clean finish, slightly combed top for professional look. Maintain natural hairline.
 `,
 
   'curly_top': `
-Add realistic messy fringe hairstyle. Dark brown hair, choppy bangs covering forehead. 
-Textured layers, individual hair strands visible.
-Natural scalp and hairline. Keep original face unchanged.
+Add a Curly Top exactly as in the reference: natural dark brown curls concentrated on top, 
+short faded or tapered sides, defined curl texture with realistic depth and shadows. Maintain natural hairline.
 `
 };
-
-
-
 
 
 
