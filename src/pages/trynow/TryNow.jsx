@@ -108,7 +108,7 @@ Ensure realistic hairline integration, natural shadows, and lighting consistency
 // Hair-specific prompts
 const HAIR_STYLE_PROMPTS = {
 
-  'textured_quiff': `${PRESERVATION_PROMPT} Add a realistic Textured Quiff hairstyle: dark brown hair, short faded sides, voluminous textured top styled slightly upward and forward. Individual hair strands visible, natural scalp blending.`,
+  'textured_quiff': `${PRESERVATION_PROMPT} Replace hair with a realistic textured messy quiff. Dark brown, 2.5 inches on top with natural waves and volume. Hair grows naturally from the scalp with a clearly defined, natural hairline and visible roots. Individual strands and subtle highlights for realism. Short fade on the sides, blending smoothly into the top. Maintain original face and lighting exactly as in the source image`,
 
   'pompadour': `${PRESERVATION_PROMPT} Add a realistic Pompadour hairstyle: dark brown hair combed smoothly back with high volume, clean faded sides. Subtle shine and well-groomed look.`,
 
