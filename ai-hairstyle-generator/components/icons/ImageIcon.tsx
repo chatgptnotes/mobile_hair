@@ -1,0 +1,8 @@
+import React from 'react';
+import Svg, { Path, SvgProps } from 'react-native-svg';
+
+export const ImageIcon: React.FC<SvgProps> = (props) => (
+  <Svg height="20" width="20" viewBox="0 0 20 20" fill="#cbd5e1" {...props}>
+    <Path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+  </Svg>
+);

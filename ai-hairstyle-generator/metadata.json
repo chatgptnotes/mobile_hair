@@ -1,0 +1,7 @@
+{
+  "name": "AI Hairstyle Generator",
+  "description": "An application that uses AI to apply different hairstyles to a user's uploaded photo. Users can select from various styles, see a before-and-after comparison, and share their new look.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "AI Hairstyle Generator",
+    "slug": "ai-hairstyle-generator",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.drmurali.aihairstylegenerator"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a"
+      },
+      "package": "com.drmurali.aihairstylegenerator",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-image-picker",
+      "expo-media-library"
+    ],
+    "owner": "drmurali",
+    "extra": {
+      "eas": {
+        "projectId": "3c9ca8a0-927a-478a-b1d8-571ba9a10ede"
+      }
+    }
+  }
+}
